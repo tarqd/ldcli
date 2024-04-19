@@ -119,13 +119,6 @@ type OperationCmd struct {
 }
 
 func (oc *OperationCmd) runOperationCmd(cmd *cobra.Command, args []string) error {
-	log.Print("🍕", args)
-	path := formatURL(oc.Path, args)
-
-	fmt.Println("1️⃣", oc.HTTPVerb)
-	fmt.Println("2️⃣", oc.APIBaseURL)
-	fmt.Println("3️⃣", path)
-
 	url := "/teams/some-key"
 	req, _ := http.NewRequest(oc.HTTPVerb, oc.APIBaseURL+url, bytes.NewBuffer(nil))
 	req.Header.Add("Authorization", "api-e9e08468-f91e-4e45-a7db-34cc6008ad9d") // TODO: add token here
