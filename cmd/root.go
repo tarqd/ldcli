@@ -32,7 +32,7 @@ func NewRootCommand(
 	version string,
 	useConfigFile bool,
 ) (*cobra.Command, error) {
-	cmd := &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:     "ldcli",
 		Short:   "LaunchDarkly CLI",
 		Long:    "LaunchDarkly CLI to control your feature flags",
@@ -68,26 +68,26 @@ func NewRootCommand(
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
-	cmd.PersistentFlags().String(
+	rootCmd.PersistentFlags().String(
 		cliflags.AccessTokenFlag,
 		"",
 		"LaunchDarkly API token with write-level access",
 	)
-	err := cmd.MarkPersistentFlagRequired(cliflags.AccessTokenFlag)
+	err := rootCmd.MarkPersistentFlagRequired(cliflags.AccessTokenFlag)
 	if err != nil {
 		return nil, err
 	}
-	err = viper.BindPFlag(cliflags.AccessTokenFlag, cmd.PersistentFlags().Lookup(cliflags.AccessTokenFlag))
+	err = viper.BindPFlag(cliflags.AccessTokenFlag, rootCmd.PersistentFlags().Lookup(cliflags.AccessTokenFlag))
 	if err != nil {
 		return nil, err
 	}
 
-	cmd.PersistentFlags().String(
+	rootCmd.PersistentFlags().String(
 		cliflags.BaseURIFlag,
 		"https://app.launchdarkly.com",
 		"LaunchDarkly base URI",
 	)
-	err = viper.BindPFlag(cliflags.BaseURIFlag, cmd.PersistentFlags().Lookup(cliflags.BaseURIFlag))
+	err = viper.BindPFlag(cliflags.BaseURIFlag, rootCmd.PersistentFlags().Lookup(cliflags.BaseURIFlag))
 	if err != nil {
 		return nil, err
 	}
@@ -109,14 +109,15 @@ func NewRootCommand(
 		return nil, err
 	}
 
-	cmd.AddCommand(configcmd.NewConfigCmd())
-	cmd.AddCommand(environmentsCmd)
-	cmd.AddCommand(flagsCmd)
-	cmd.AddCommand(membersCmd)
-	cmd.AddCommand(projectsCmd)
-	cmd.AddCommand(NewQuickStartCmd(environmentsClient, flagsClient))
+	rootCmd.AddCommand(configcmd.NewConfigCmd())
+	rootCmd.AddCommand(environmentsCmd)
+	rootCmd.AddCommand(flagsCmd)
+	rootCmd.AddCommand(membersCmd)
+	rootCmd.AddCommand(projectsCmd)
+	rootCmd.AddCommand(NewQuickStartCmd(environmentsClient, flagsClient))
+	addAllResourceCmds(rootCmd)
 
-	return cmd, nil
+	return rootCmd, nil
 }
 
 func Execute(analyticsTracker analytics.Tracker, version string) {
