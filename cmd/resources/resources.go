@@ -52,6 +52,11 @@ type Param struct {
 	Required    bool
 }
 
+func jsonString(s string) string {
+	bs, _ := json.Marshal(s)
+	return string(bs)
+}
+
 func GetTemplateData(fileName string) (TemplateData, error) {
 	rawFile, err := os.ReadFile(fileName)
 	if err != nil {
@@ -66,9 +71,13 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 
 	resourceData := make(map[string]ResourceData)
 	for _, r := range spec.Tags {
+		if strings.Contains(r.Name, "(beta)") {
+			// skip beta resources for now
+			continue
+		}
 		resourceData[r.Name] = ResourceData{
-			Name:        r.Name,
-			Description: r.Description,
+			Name:        strings.ToLower(r.Name),
+			Description: jsonString(r.Description),
 			Operations:  make(map[string]OperationData, 0),
 		}
 	}
@@ -86,7 +95,7 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 
 			operation := OperationData{
 				Short:        op.Summary,
-				Long:         op.Description,
+				Long:         jsonString(op.Description),
 				Use:          use,
 				Params:       make([]Param, 0),
 				HTTPMethod:   method,
@@ -101,7 +110,7 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 					param := Param{
 						Name:        p.Value.Name,
 						In:          p.Value.In,
-						Description: p.Value.Description,
+						Description: jsonString(p.Value.Description),
 						Type:        types[0],
 						Required:    p.Value.Required,
 					}
@@ -127,25 +136,27 @@ func getCmdUse(method string, op *openapi3.Operation, spec *openapi3.T) string {
 
 	use := methodMap[method]
 
-	var schema *openapi3.SchemaRef
-	for respType, respInfo := range op.Responses.Map() {
-		respCode, _ := strconv.Atoi(respType)
-		if respCode < 300 {
-			for _, s := range respInfo.Value.Content {
-				schemaName := strings.TrimPrefix(s.Schema.Ref, "#/components/schemas/")
-				schema = spec.Components.Schemas[schemaName]
+	if method == "GET" {
+		var schema *openapi3.SchemaRef
+		for respType, respInfo := range op.Responses.Map() {
+			respCode, _ := strconv.Atoi(respType)
+			if respCode < 300 {
+				for _, s := range respInfo.Value.Content {
+					schemaName := strings.TrimPrefix(s.Schema.Ref, "#/components/schemas/")
+					schema = spec.Components.Schemas[schemaName]
+				}
 			}
 		}
-	}
 
-	if schema == nil {
-		// probably won't need to keep this logging in but leaving it for debugging purposes
-		log.Printf("No response type defined for %s", op.OperationID)
-	} else {
-		for propName := range schema.Value.Properties {
-			if propName == "items" {
-				use = "list"
-				break
+		if schema == nil {
+			// probably won't need to keep this logging in but leaving it for debugging purposes
+			log.Printf("No response type defined for %s", op.OperationID)
+		} else {
+			for propName := range schema.Value.Properties {
+				if propName == "items" {
+					use = "list"
+					break
+				}
 			}
 		}
 	}
