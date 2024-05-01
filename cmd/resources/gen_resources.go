@@ -4,15 +4,52 @@
 package main
 
 import (
-	"log"
+	"bytes"
+	"fmt"
+	"go/format"
+	"io/ioutil"
+	"os"
 
 	"ldcli/cmd/resources"
+	"text/template"
+)
+
+const (
+	pathSpecFile = "../ld-teams-openapi.json"
+	pathTemplate = "resources/resource_cmds.tmpl"
+	templateName = "resource_cmds.tmpl"
+	pathOutput   = "resources/resource_cmds_generated.go"
 )
 
 func main() {
-	data, err := resources.GetTemplateData("../ld-teams-openapi.json")
+	templateData, err := resources.GetTemplateData(pathSpecFile)
 	if err != nil {
-		log.Println(err)
+		panic(err)
 	}
-	log.Println(data.Resources["Teams"].Description)
+
+	fmt.Println(os.Getwd())
+
+	tmpl, err := template.New(templateName).ParseFiles(pathTemplate)
+	if err != nil {
+		panic(err)
+	}
+
+	var result bytes.Buffer
+	err = tmpl.Execute(&result, templateData)
+	if err != nil {
+		panic(err)
+	}
+
+	// Format the output of the template execution
+	formatted, err := format.Source(result.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	// Write the formatted source code to disk
+	fmt.Printf("writing %s\n", pathOutput)
+	err = ioutil.WriteFile(pathOutput, formatted, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
