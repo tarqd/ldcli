@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -29,6 +28,7 @@ type TemplateData struct {
 }
 
 type ResourceData struct {
+	DisplayName string
 	Name        string
 	Description string
 	Operations  map[string]OperationData
@@ -77,7 +77,8 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 			continue
 		}
 		resourceData[strcase.ToCamel(r.Name)] = ResourceData{
-			Name:        strings.ToLower(r.Name),
+			DisplayName: strings.ToLower(r.Name),
+			Name:        strcase.ToKebab(strings.ToLower(r.Name)),
 			Description: jsonString(r.Description),
 			Operations:  make(map[string]OperationData, 0),
 		}
@@ -95,12 +96,12 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 				continue
 			}
 
-			use := getCmdUse(method, op, spec)
+			//use := getCmdUse(method, op, spec)
 
 			operation := OperationData{
 				Short:        jsonString(op.Summary),
 				Long:         jsonString(op.Description),
-				Use:          use,
+				Use:          strcase.ToKebab(op.OperationID),
 				Params:       make([]Param, 0),
 				HTTPMethod:   method,
 				RequiresBody: method == "PUT" || method == "POST" || method == "PATCH",
@@ -130,42 +131,44 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 }
 
 func getCmdUse(method string, op *openapi3.Operation, spec *openapi3.T) string {
-	methodMap := map[string]string{
-		"GET":    "get",
-		"POST":   "create",
-		"PUT":    "replace", // TODO: confirm this
-		"DELETE": "delete",
-		"PATCH":  "update",
-	}
 
-	use := methodMap[method]
+	// TODO: update this to work with the operationId
+	//methodMap := map[string]string{
+	//	"GET":    "get",
+	//	"POST":   "create",
+	//	"PUT":    "replace", // TODO: confirm this
+	//	"DELETE": "delete",
+	//	"PATCH":  "update",
+	//}
+	//
+	//use := methodMap[method]
+	//
+	//if method == "GET" {
+	//	var schema *openapi3.SchemaRef
+	//	for respType, respInfo := range op.Responses.Map() {
+	//		respCode, _ := strconv.Atoi(respType)
+	//		if respCode < 300 {
+	//			for _, s := range respInfo.Value.Content {
+	//				schemaName := strings.TrimPrefix(s.Schema.Ref, "#/components/schemas/")
+	//				schema = spec.Components.Schemas[schemaName]
+	//			}
+	//		}
+	//	}
+	//
+	//	if schema == nil {
+	//		// probably won't need to keep this logging in but leaving it for debugging purposes
+	//		log.Printf("No response type defined for %s", op.OperationID)
+	//	} else {
+	//		for propName := range schema.Value.Properties {
+	//			if propName == "items" {
+	//				use = "list"
+	//				break
+	//			}
+	//		}
+	//	}
+	//}
 
-	if method == "GET" {
-		var schema *openapi3.SchemaRef
-		for respType, respInfo := range op.Responses.Map() {
-			respCode, _ := strconv.Atoi(respType)
-			if respCode < 300 {
-				for _, s := range respInfo.Value.Content {
-					schemaName := strings.TrimPrefix(s.Schema.Ref, "#/components/schemas/")
-					schema = spec.Components.Schemas[schemaName]
-				}
-			}
-		}
-
-		if schema == nil {
-			// probably won't need to keep this logging in but leaving it for debugging purposes
-			log.Printf("No response type defined for %s", op.OperationID)
-		} else {
-			for propName := range schema.Value.Properties {
-				if propName == "items" {
-					use = "list"
-					break
-				}
-			}
-		}
-	}
-
-	return use
+	return strcase.ToKebab(op.OperationID)
 }
 
 func NewResourceCmd(parentCmd *cobra.Command, analyticsTracker analytics.Tracker, resourceName, shortDescription, longDescription string) *cobra.Command {
@@ -215,20 +218,27 @@ func (op *OperationCmd) initFlags() error {
 		}
 	}
 
+	existingFlags := make(map[string]string)
 	for _, p := range op.Params {
-		shorthand := fmt.Sprintf(p.Name[0:1]) // todo: how do we handle potential dupes
+		flagName := strcase.ToKebab(p.Name)
+		shorthand := fmt.Sprintf(p.Name[0:1])
+		if _, ok := existingFlags[shorthand]; ok {
+			// this is bad but shorthands have to be 1 character - maybe we just don't have them
+			shorthand = fmt.Sprintf(p.Name[1:2])
+		}
+		existingFlags[shorthand] = p.Name
 		// TODO: consider handling these all as strings
 		switch p.Type {
 		case "string":
-			op.cmd.Flags().StringP(p.Name, shorthand, "", p.Description)
+			op.cmd.Flags().StringP(flagName, shorthand, "", p.Description)
 		case "int":
-			op.cmd.Flags().IntP(p.Name, shorthand, 0, p.Description)
+			op.cmd.Flags().IntP(flagName, shorthand, 0, p.Description)
 		case "boolean":
-			op.cmd.Flags().BoolP(p.Name, shorthand, false, p.Description)
+			op.cmd.Flags().BoolP(flagName, shorthand, false, p.Description)
 		}
 
 		if p.In == "path" {
-			err := op.cmd.MarkFlagRequired(p.Name)
+			err := op.cmd.MarkFlagRequired(flagName)
 			if err != nil {
 				return err
 			}
@@ -271,7 +281,7 @@ func (op *OperationCmd) makeRequest(cmd *cobra.Command, args []string) error {
 	query := url.Values{}
 	var urlParms []string
 	for _, p := range op.Params {
-		val := viper.GetString(p.Name)
+		val := viper.GetString(strcase.ToKebab(p.Name))
 		if val != "" {
 			switch p.In {
 			case "path":

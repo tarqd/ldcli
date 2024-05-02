@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	pathSpecFile = "../ld-teams-openapi.json"
+	pathSpecFile = "../ld-openapi.json"
 	pathTemplate = "resources/resource_cmds.tmpl"
 	templateName = "resource_cmds.tmpl"
 	pathOutput   = "resources/resource_cmds_generated.go"

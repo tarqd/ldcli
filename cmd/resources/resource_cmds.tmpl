@@ -15,7 +15,7 @@ func AddAllResourceCmdsGen(rootCmd *cobra.Command, client resources.Client, anal
         rootCmd,
         analyticsTracker,
         "{{ $resData.Name }}",
-        "Make requests (list, create, etc.) on {{ $resData.Name }}",
+        "Make requests (list, create, etc.) on {{ $resData.DisplayName }}",
         {{ $resData.Description }},
     )
     {{ end }}
