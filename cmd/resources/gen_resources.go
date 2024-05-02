@@ -18,7 +18,7 @@ const (
 	pathSpecFile = "../ld-openapi.json"
 	pathTemplate = "resources/resource_cmds.tmpl"
 	templateName = "resource_cmds.tmpl"
-	pathOutput   = "resources/resource_cmds_generated.go"
+	pathOutput   = "resources/resource_cmds.go"
 )
 
 func main() {

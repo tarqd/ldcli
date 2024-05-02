@@ -9,7 +9,7 @@ import (
 	"ldcli/internal/resources"
 )
 
-func AddAllResourceCmdsGen(rootCmd *cobra.Command, client resources.Client, analyticsTracker analytics.Tracker) {
+func AddAllResourceCmds(rootCmd *cobra.Command, client resources.Client, analyticsTracker analytics.Tracker) {
 	// Resource commands{{ range $resName, $resData := .Resources }}
 	gen_{{ $resName }}ResourceCmd := NewResourceCmd(
         rootCmd,
