@@ -22,7 +22,7 @@ func AddAllResourceCmdsGen(rootCmd *cobra.Command, client resources.Client, anal
 
     // Operation commands{{ range $resName, $resData := .Resources }}{{ range $opName, $opData := $resData.Operations }}
     NewOperationCmd(gen_{{ $resName }}ResourceCmd, client, OperationData{
-            Short: "{{ $opData.Short }}",
+            Short: {{ $opData.Short }},
             Long:  {{ $opData.Long }},
             Use:   "{{ $opData.Use }}",
             Params: []Param{ {{ range $param := $opData.Params }}

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -75,7 +76,7 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 			// skip beta resources for now
 			continue
 		}
-		resourceData[r.Name] = ResourceData{
+		resourceData[strcase.ToCamel(r.Name)] = ResourceData{
 			Name:        strings.ToLower(r.Name),
 			Description: jsonString(r.Description),
 			Operations:  make(map[string]OperationData, 0),
@@ -85,7 +86,10 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 	for path, pathItem := range spec.Paths.Map() {
 		for method, op := range pathItem.Operations() {
 			tag := op.Tags[0] // TODO: confirm each op only has one tag
-			resource, ok := resourceData[tag]
+			if strings.Contains(tag, "(beta") {
+				continue
+			}
+			resource, ok := resourceData[strcase.ToCamel(tag)]
 			if !ok {
 				log.Printf("Matching resource not found for %s operation's tag: %s", op.OperationID, tag)
 				continue
@@ -94,7 +98,7 @@ func GetTemplateData(fileName string) (TemplateData, error) {
 			use := getCmdUse(method, op, spec)
 
 			operation := OperationData{
-				Short:        op.Summary,
+				Short:        jsonString(op.Summary),
 				Long:         jsonString(op.Description),
 				Use:          use,
 				Params:       make([]Param, 0),
@@ -160,6 +164,7 @@ func getCmdUse(method string, op *openapi3.Operation, spec *openapi3.T) string {
 			}
 		}
 	}
+
 	return use
 }
 
