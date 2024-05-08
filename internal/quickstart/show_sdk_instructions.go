@@ -2,7 +2,6 @@ package quickstart
 
 import (
 	"fmt"
-
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -10,14 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-
 	"ldcli/internal/environments"
 	"ldcli/internal/sdks"
-)
-
-const (
-	viewportWidth  = 80
-	viewportHeight = 30
 )
 
 type environment struct {
@@ -52,11 +45,13 @@ func NewShowSDKInstructionsModel(
 	url string,
 	flagKey string,
 	environment *environment,
+	width int,
+	height int,
 ) tea.Model {
 	s := spinner.New()
 	s.Spinner = spinner.Points
 
-	vp := viewport.New(viewportWidth, viewportHeight)
+	vp := viewport.New(width, height)
 	vp.Style = lipgloss.NewStyle().
 		BorderStyle(lipgloss.ThickBorder()).
 		BorderForeground(lipgloss.Color("62")).
@@ -112,6 +107,9 @@ func (m showSDKInstructionsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		default:
 			m.viewport, cmd = m.viewport.Update(msg)
 		}
+	case tea.WindowSizeMsg:
+		m.viewport.Width = msg.Width
+		m.viewport.Height = msg.Height
 	case fetchedSDKInstructionsMsg:
 		m.instructions = string(msg.instructions)
 		if m.environment != nil {
@@ -137,6 +135,27 @@ func (m showSDKInstructionsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m showSDKInstructionsModel) headerView() string {
+	instructions := fmt.Sprintf(`
+Here are the steps to set up a test app to see feature flagging in action using the %s SDK in your Default project & Test environment.
+
+You should have everything you need to get started, including the flag from the previous step and your environmnet key from your Test environment already embedded in the code!
+
+Open a new terminal window to get started.
+
+If you want to skip ahead, the final code is available in our GitHub repository:
+%s
+`,
+		m.displayName,
+		m.url,
+	)
+	return instructions
+}
+
+func (m showSDKInstructionsModel) footerView() string {
+	return "\n(press enter to continue)" + footerView(m.help.View(m.helpKeys), nil)
+}
+
 func (m showSDKInstructionsModel) View() string {
 	if m.err != nil {
 		return footerView(m.help.View(m.helpKeys), m.err)
@@ -148,23 +167,13 @@ func (m showSDKInstructionsModel) View() string {
 
 	m.help.ShowAll = true
 
-	instructions := fmt.Sprintf(`
-Here are the steps to set up a test app to see feature flagging in action
-using the %s SDK in your Default project & Test environment.
+	headerHeight := lipgloss.Height(m.headerView())
+	footerHeight := lipgloss.Height(m.footerView())
+	containerHeight := lipgloss.Height("\nStep %d of %d\n")
+	verticalMarginHeight := headerHeight + footerHeight + containerHeight
+	m.viewport.Height -= verticalMarginHeight
 
-You should have everything you need to get started, including the flag from
-the previous step and your environmnet key from your Test environment already
-embedded in the code!
-
-Open a new terminal window to get started.
-
-If you want to skip ahead, the final code is available in our GitHub repository:
-%s
-`,
-		m.displayName,
-		m.url,
-	)
-	return instructions + m.viewport.View() + "\n(press enter to continue)" + footerView(m.help.View(m.helpKeys), nil)
+	return m.headerView() + m.viewport.View() + m.footerView()
 }
 
 func (m showSDKInstructionsModel) renderMarkdown() (string, error) {
