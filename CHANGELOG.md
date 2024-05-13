@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.13.0](https://github.com/launchdarkly/ldcli/compare/v0.12.1...v0.13.0) (2024-05-13)
+
+
+### Features
+
+* track setup completed ([#272](https://github.com/launchdarkly/ldcli/issues/272)) ([6554b7d](https://github.com/launchdarkly/ldcli/commit/6554b7d5ca29c59ca089b755b8a925d7065cfca7))
+
+
+### Bug Fixes
+
+* add back member invite alias ([#276](https://github.com/launchdarkly/ldcli/issues/276)) ([a5d0a8c](https://github.com/launchdarkly/ldcli/commit/a5d0a8c032d57d1e685edc52ad22feafa41ff6b3))
+* remove bad template func ([#275](https://github.com/launchdarkly/ldcli/issues/275)) ([5de0112](https://github.com/launchdarkly/ldcli/commit/5de0112cb21d0662c9c58a0bc41ea41623f6a7eb))
+* toggle flag aliases ([#269](https://github.com/launchdarkly/ldcli/issues/269)) ([76de2a5](https://github.com/launchdarkly/ldcli/commit/76de2a5f85e84dcaf2e64e27820c85205aebf650))
+* update usage template to only show flags when present ([#273](https://github.com/launchdarkly/ldcli/issues/273)) ([68e6b5c](https://github.com/launchdarkly/ldcli/commit/68e6b5ce6684075b07ae7958f375eeed3ce29780))
+
 ## [0.12.1](https://github.com/launchdarkly/ldcli/compare/v0.12.0...v0.12.1) (2024-05-10)
 
 
